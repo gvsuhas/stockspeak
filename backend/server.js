@@ -25,9 +25,17 @@ app.get('/api/stats', async (req, res) => {
     const Transaction = require('./models/Transaction');
 
     const products = await Product.find().catch(() => []);
+
     const totalProducts = products.length;
-    const totalInventoryValue = products.reduce((acc, p) => acc + (p.stockQuantity * p.pricePerUnit), 0);
-    const lowStockCount = products.filter(p => p.stockQuantity <= p.minThreshold).length;
+
+    const totalInventoryValue = products.reduce(
+      (acc, p) => acc + (p.stockQuantity * p.pricePerUnit),
+      0
+    );
+
+    const lowStockCount = products.filter(
+      p => p.stockQuantity <= p.minThreshold
+    ).length;
 
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -42,8 +50,11 @@ app.get('/api/stats', async (req, res) => {
       lowStockCount,
       todayTransactions
     });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message
+    });
   }
 });
 
@@ -59,24 +70,48 @@ app.post('/api/seed', async (req, res) => {
     await Transaction.deleteMany({}).catch(() => {});
 
     await seedProducts();
-    res.json({ message: 'Database reset & seeded with sample Kirana store inventory successfully!' });
+
+    res.json({
+      message:
+        'Database reset & seeded with sample Kirana store inventory successfully!'
+    });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message
+    });
   }
 });
 
 // Root Health Check
 app.get('/', (req, res) => {
-  res.json({ status: 'StockSpeak API is operational', timestamp: new Date() });
+  res.json({
+    status: 'StockSpeak API is operational',
+    timestamp: new Date()
+  });
 });
 
+// Render provides the PORT environment variable.
+// 5000 is used when running locally.
 const PORT = process.env.PORT || 5000;
 
 // Connect Database & Start Server
-connectDB().then(() => {
-  seedProducts();
-}).finally(() => {
-  app.listen(PORT, () => {
-    console.log(`StockSpeak Backend Server running on port ${PORT}`);
-  });
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    await seedProducts();
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(
+        `StockSpeak Backend Server running on port ${PORT}`
+      );
+    });
+
+  } catch (error) {
+    console.error('Server startup failed:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
